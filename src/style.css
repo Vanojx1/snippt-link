@@ -1,0 +1,258 @@
+/* ===== CSS Variables - VS Code Dark+ Theme ===== */
+:root {
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-tertiary: #333333;
+  --text-primary: #d4d4d4;
+  --text-secondary: #9d9d9d;
+  --text-muted: #858585;
+  --accent-blue: #569cd6;
+  --accent-green: #4ec9b0;
+  --accent-purple: #c586c0;
+  --border-color: #3c3c3c;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --font-mono: 'Fira Code', 'JetBrains Mono', 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+}
+
+/* ===== Reset & Base ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+/* ===== App Layout ===== */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ===== Header ===== */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+#mode-indicator {
+  font-weight: 500;
+}
+
+#mode-indicator.read-only {
+  color: var(--accent-blue);
+  background: rgba(88, 166, 255, 0.1);
+}
+
+#mode-indicator.editing {
+  color: var(--accent-green);
+  background: rgba(63, 185, 80, 0.1);
+}
+
+#language-indicator {
+  text-transform: capitalize;
+}
+
+/* ===== Editor Container ===== */
+#editor-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-primary);
+}
+
+#editor-container .cm-editor {
+  height: 100%;
+  outline: none;
+}
+
+#editor-container .cm-scroller {
+  overflow: auto;
+  font-family: var(--font-mono);
+}
+
+/* Read-only overlay hint */
+#editor-container.read-only::after {
+  content: 'Double-tap to edit';
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  pointer-events: none;
+  opacity: 0;
+  animation: fadeInHint 0.3s ease 1s forwards;
+}
+
+@keyframes fadeInHint {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ===== Footer ===== */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.footer-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.footer-link {
+  color: var(--accent-blue);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-link:hover {
+  color: var(--accent-purple);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+  .header {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .logo {
+    font-size: 1.1rem;
+  }
+
+  .logo-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .status-bar {
+    gap: 8px;
+  }
+
+  .indicator {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+
+  #editor-container .cm-content {
+    font-size: 13px;
+  }
+
+  #editor-container.read-only::after {
+    font-size: 0.7rem;
+    padding: 6px 12px;
+    bottom: 12px;
+  }
+
+  .footer {
+    padding: 6px 12px;
+  }
+
+  .footer-text {
+    font-size: 0.65rem;
+  }
+}
+
+/* ===== Selection Color ===== */
+::selection {
+  background: rgba(173, 214, 255, 0.4);
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color);
+}
+
+/* ===== Focus Styles ===== */
+.cm-editor.cm-focused {
+  outline: none;
+}
