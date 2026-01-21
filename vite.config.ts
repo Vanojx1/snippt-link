@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-    // For GitHub Pages - change to '/repo-name/' if not using custom domain
-    base: '/',
+    // For GitHub Pages - use repo name as base path
+    base: '/snippt-link/',
     build: {
         target: 'esnext',
     },
