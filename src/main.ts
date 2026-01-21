@@ -1,32 +1,109 @@
 import './style.css';
 import * as monaco from 'monaco-editor';
+import hljs from 'highlight.js/lib/core';
+// Import common languages for detection
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import python from 'highlight.js/lib/languages/python';
+import java from 'highlight.js/lib/languages/java';
+import csharp from 'highlight.js/lib/languages/csharp';
+import cpp from 'highlight.js/lib/languages/cpp';
+import c from 'highlight.js/lib/languages/c';
+import go from 'highlight.js/lib/languages/go';
+import rust from 'highlight.js/lib/languages/rust';
+import ruby from 'highlight.js/lib/languages/ruby';
+import php from 'highlight.js/lib/languages/php';
+import swift from 'highlight.js/lib/languages/swift';
+import kotlin from 'highlight.js/lib/languages/kotlin';
+import sql from 'highlight.js/lib/languages/sql';
+import bash from 'highlight.js/lib/languages/bash';
+import shell from 'highlight.js/lib/languages/shell';
+import json from 'highlight.js/lib/languages/json';
+import xml from 'highlight.js/lib/languages/xml';
+import css from 'highlight.js/lib/languages/css';
+import scss from 'highlight.js/lib/languages/scss';
+import yaml from 'highlight.js/lib/languages/yaml';
+import markdown from 'highlight.js/lib/languages/markdown';
+import dockerfile from 'highlight.js/lib/languages/dockerfile';
+import powershell from 'highlight.js/lib/languages/powershell';
+import objectivec from 'highlight.js/lib/languages/objectivec';
+import scala from 'highlight.js/lib/languages/scala';
+
 import { readUrlHash, updateUrlHash } from './compression';
 import type { SnippetData } from './compression';
 
-// Configure Monaco workers
-self.MonacoEnvironment = {
-  getWorker: function (_moduleId: string, label: string) {
-    const getWorkerModule = (moduleUrl: string) => {
-      return new Worker(new URL(moduleUrl, import.meta.url), { type: 'module' });
-    };
+// Register languages with highlight.js
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('typescript', typescript);
+hljs.registerLanguage('python', python);
+hljs.registerLanguage('java', java);
+hljs.registerLanguage('csharp', csharp);
+hljs.registerLanguage('cpp', cpp);
+hljs.registerLanguage('c', c);
+hljs.registerLanguage('go', go);
+hljs.registerLanguage('rust', rust);
+hljs.registerLanguage('ruby', ruby);
+hljs.registerLanguage('php', php);
+hljs.registerLanguage('swift', swift);
+hljs.registerLanguage('kotlin', kotlin);
+hljs.registerLanguage('sql', sql);
+hljs.registerLanguage('bash', bash);
+hljs.registerLanguage('shell', shell);
+hljs.registerLanguage('json', json);
+hljs.registerLanguage('xml', xml);
+hljs.registerLanguage('html', xml); // HTML uses XML parser
+hljs.registerLanguage('css', css);
+hljs.registerLanguage('scss', scss);
+hljs.registerLanguage('yaml', yaml);
+hljs.registerLanguage('markdown', markdown);
+hljs.registerLanguage('dockerfile', dockerfile);
+hljs.registerLanguage('powershell', powershell);
+hljs.registerLanguage('objectivec', objectivec);
+hljs.registerLanguage('scala', scala);
 
-    switch (label) {
-      case 'json':
-        return getWorkerModule('monaco-editor/esm/vs/language/json/json.worker?worker');
-      case 'css':
-      case 'scss':
-      case 'less':
-        return getWorkerModule('monaco-editor/esm/vs/language/css/css.worker?worker');
-      case 'html':
-      case 'handlebars':
-      case 'razor':
-        return getWorkerModule('monaco-editor/esm/vs/language/html/html.worker?worker');
-      case 'typescript':
-      case 'javascript':
-        return getWorkerModule('monaco-editor/esm/vs/language/typescript/ts.worker?worker');
-      default:
-        return getWorkerModule('monaco-editor/esm/vs/editor/editor.worker?worker');
-    }
+// Map highlight.js names to Monaco language IDs
+const hljsToMonaco: Record<string, string> = {
+  'javascript': 'javascript',
+  'typescript': 'typescript',
+  'python': 'python',
+  'java': 'java',
+  'csharp': 'csharp',
+  'cpp': 'cpp',
+  'c': 'c',
+  'go': 'go',
+  'rust': 'rust',
+  'ruby': 'ruby',
+  'php': 'php',
+  'swift': 'swift',
+  'kotlin': 'kotlin',
+  'sql': 'sql',
+  'bash': 'shell',
+  'shell': 'shell',
+  'json': 'json',
+  'xml': 'xml',
+  'html': 'html',
+  'css': 'css',
+  'scss': 'scss',
+  'yaml': 'yaml',
+  'markdown': 'markdown',
+  'dockerfile': 'dockerfile',
+  'powershell': 'powershell',
+  'objectivec': 'objective-c',
+  'scala': 'scala',
+};
+
+// Available languages for manual selection (sorted)
+const availableLanguages = [
+  'plaintext', 'javascript', 'typescript', 'python', 'java', 'csharp',
+  'cpp', 'c', 'go', 'rust', 'ruby', 'php', 'swift', 'kotlin', 'sql',
+  'shell', 'powershell', 'json', 'xml', 'html', 'css', 'scss', 'yaml',
+  'markdown', 'dockerfile', 'objective-c', 'scala'
+].sort();
+
+// Disable Monaco workers - run in main thread (fine for small snippets)
+self.MonacoEnvironment = {
+  getWorker: () => {
+    throw new Error('Workers disabled');
   }
 };
 
@@ -36,12 +113,67 @@ let currentLanguage = 'plaintext';
 let lastTapTime = 0;
 
 /**
- * Updates the language indicator in the UI.
+ * Detect language using highlight.js auto-detection.
+ */
+function detectLanguageFromContent(code: string): string {
+  if (!code.trim()) return 'plaintext';
+
+  try {
+    const result = hljs.highlightAuto(code);
+    if (result.language && result.relevance > 5) {
+      return hljsToMonaco[result.language] || result.language;
+    }
+  } catch {
+    // Fallback to plaintext on error
+  }
+
+  return 'plaintext';
+}
+
+/**
+ * Updates the language indicator/selector in the UI.
  */
 function updateLanguageIndicator(): void {
-  const indicator = document.getElementById('language-indicator');
-  if (indicator) {
-    indicator.textContent = currentLanguage || 'plain text';
+  let selector = document.getElementById('language-selector') as HTMLSelectElement | null;
+
+  // Create dropdown if it doesn't exist
+  if (!selector) {
+    const container = document.getElementById('language-indicator');
+    if (!container) return;
+
+    // Replace the span with a select
+    selector = document.createElement('select');
+    selector.id = 'language-selector';
+    selector.className = 'language-selector';
+    selector.title = 'Select language (or auto-detect)';
+
+    // Add options
+    availableLanguages.forEach(lang => {
+      const option = document.createElement('option');
+      option.value = lang;
+      option.textContent = lang;
+      selector!.appendChild(option);
+    });
+
+    // Handle manual selection
+    selector.addEventListener('change', () => {
+      const newLang = selector!.value;
+      if (newLang !== currentLanguage) {
+        currentLanguage = newLang;
+        if (editor) {
+          monaco.editor.setModelLanguage(editor.getModel()!, newLang);
+          // Always update URL with new language (even in read-only mode)
+          updateUrlHash(editor.getValue(), currentLanguage);
+        }
+      }
+    });
+
+    container.replaceWith(selector);
+  }
+
+  // Update selected value
+  if (selector && selector.value !== currentLanguage) {
+    selector.value = currentLanguage;
   }
 }
 
@@ -93,66 +225,43 @@ function debounce(fn: () => void, delay: number): () => void {
 }
 
 /**
- * Get detected language from Monaco's language detection.
+ * Shows/hides URL length warning.
  */
-function detectLanguageFromContent(code: string): string {
-  // Monaco doesn't have built-in detection, but we can infer from model
-  // For now, use simple patterns for common languages
-  const trimmed = code.trim();
-  const firstLine = trimmed.split('\n')[0] || '';
+function showUrlWarning(status: { length: number; isWarning: boolean; isError: boolean }): void {
+  let warning = document.getElementById('url-warning');
 
-  // HTML
-  if (/^<!DOCTYPE|^<html|^<head|^<body/i.test(trimmed)) return 'html';
-
-  // JSON
-  if (/^[\[\{]/.test(trimmed) && /[\]\}]$/.test(trimmed)) {
-    try { JSON.parse(trimmed); return 'json'; } catch { }
+  if (!status.isWarning && !status.isError) {
+    if (warning) warning.remove();
+    return;
   }
 
-  // YAML
-  if (/^[a-zA-Z_][a-zA-Z0-9_-]*:\s*/.test(firstLine) && !trimmed.includes('{') && !trimmed.includes(';')) {
-    return 'yaml';
+  if (!warning) {
+    warning = document.createElement('div');
+    warning.id = 'url-warning';
+    warning.style.cssText = `
+      position: fixed;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: -apple-system, sans-serif;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    `;
+    document.body.appendChild(warning);
   }
 
-  // Python
-  if (/^(import |from |def |class |if __name__|async def )/.test(trimmed)) return 'python';
-
-  // TypeScript
-  if (/:\s*(string|number|boolean|void|Promise<|Array<)/.test(trimmed) || /^(interface |type |enum )/.test(trimmed)) {
-    return 'typescript';
+  if (status.isError) {
+    warning.style.background = '#f85149';
+    warning.style.color = '#fff';
+    warning.textContent = `⚠️ URL too long (${status.length} chars) - won't be saved. Max ~8000 chars.`;
+  } else {
+    warning.style.background = '#d29922';
+    warning.style.color = '#fff';
+    warning.textContent = `⚠️ URL getting long (${status.length} chars) - may not work in some browsers`;
   }
-
-  // JavaScript
-  if (/^(import |export |const |let |var |function |=>|class )/.test(trimmed) ||
-    /console\.|require\(|module\.exports/.test(trimmed)) {
-    return 'javascript';
-  }
-
-  // CSS
-  if (/^(\.|#|@media|body|html)\s*\{/.test(trimmed)) return 'css';
-
-  // Shell
-  if (/^#!/.test(trimmed) || /^\$\s/.test(firstLine)) return 'shell';
-
-  // SQL
-  if (/^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER)\b/i.test(trimmed)) return 'sql';
-
-  // Markdown
-  if (/^#{1,6}\s/.test(trimmed) || /^\*\*/.test(trimmed)) return 'markdown';
-
-  // C/C++
-  if (/^#include\s*[<"]/.test(trimmed)) return trimmed.includes('iostream') ? 'cpp' : 'c';
-
-  // Go
-  if (/^(package |func |import \()/.test(trimmed)) return 'go';
-
-  // Rust
-  if (/^(fn |pub fn |struct |impl )/.test(trimmed)) return 'rust';
-
-  // Java
-  if (/^(public |private )?(class |interface )/.test(trimmed)) return 'java';
-
-  return 'plaintext';
 }
 
 /**
@@ -169,7 +278,8 @@ const handleCodeChange = debounce(() => {
       updateLanguageIndicator();
     }
 
-    updateUrlHash(code, currentLanguage);
+    const urlStatus = updateUrlHash(code, currentLanguage);
+    showUrlWarning(urlStatus);
   }
 }, 1500);
 

@@ -43,12 +43,37 @@ export function decode(hash: string): SnippetData | null {
     }
 }
 
+// URL length limits (characters)
+const URL_WARNING_LIMIT = 2000;  // Show warning
+const URL_ERROR_LIMIT = 8000;    // Too long for some browsers
+
+export interface UrlStatus {
+    length: number;
+    isWarning: boolean;
+    isError: boolean;
+}
+
 /**
  * Updates the URL hash with the encoded snippet data.
+ * Returns status about URL length.
  */
-export function updateUrlHash(code: string, lang?: string): void {
+export function updateUrlHash(code: string, lang?: string): UrlStatus {
     const encoded = encode(code, lang);
-    history.replaceState(null, '', `#${encoded}`);
+    const fullUrl = `${window.location.origin}${window.location.pathname}#${encoded}`;
+    const length = fullUrl.length;
+
+    const status: UrlStatus = {
+        length,
+        isWarning: length > URL_WARNING_LIMIT && length <= URL_ERROR_LIMIT,
+        isError: length > URL_ERROR_LIMIT,
+    };
+
+    // Only update URL if not exceeding error limit
+    if (!status.isError) {
+        history.replaceState(null, '', `#${encoded}`);
+    }
+
+    return status;
 }
 
 /**
