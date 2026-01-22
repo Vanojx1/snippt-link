@@ -445,6 +445,15 @@ async function init(): Promise<void> {
   updateModeIndicator();
   updateLanguageIndicator();
 
+  // Update URL status indicator on initial load
+  if (initialCode) {
+    const urlStatus = updateUrlHash(initialCode, currentLanguage);
+    showUrlWarning(urlStatus);
+  } else {
+    // Initialize status for empty editor
+    updateUrlStatus({ length: window.location.href.length, isWarning: false, isError: false });
+  }
+
   // Hide loading screen
   const loadingScreen = document.getElementById('loading-screen');
   if (loadingScreen) {
