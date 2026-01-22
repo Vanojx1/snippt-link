@@ -161,7 +161,6 @@ function getMonacoLang(vsCodeId: string): string {
  */
 async function detectLanguageFromContent(code: string): Promise<string> {
   const result = await guessLang.runModel(code);
-  console.log(code, result);
   if (result && result.length > 0) {
     return getMonacoLang(result[0].languageId);
   }
